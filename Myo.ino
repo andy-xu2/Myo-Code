@@ -99,44 +99,43 @@ void loop()
 /*
    if get EMG signal,return 1;
 */
-int getEMGCount(int gforce_envelope)
+int getEMGCount(int intensity)
 {
-  static long integralData = 0;
-  static long integralDataEve = 0;
-  static bool remainFlag = false;
-  static unsigned long timeMillis = 0;
-  static unsigned long timeBeginzero = 0;
-  static long fistNum = 0;
-  static int  TimeStandard = 200;
+  static long runningTotal = 0;
+  static long previousTotal = 0;
+  static bool muscleActive = false;
+  static unsigned long timeElapsed = 0;
+  static unsigned long timeBegin = 0;
+  static int  quietThreshold = 200;
   /*
     The integral is processed to continuously add the signal value
     and compare the integral value of the previous sampling to determine whether the signal is continuous
    */
-  integralDataEve = integralData;
-  integralData += gforce_envelope;
+  previousTotal = runningTotal;
+  runningTotal += intensity;
   /*
     If the integral is constant, and it doesn't equal 0, then the time is recorded;
     If the value of the integral starts to change again, the remainflag is true, and the time record will be re-entered next time
   */
-  if ((integralDataEve == integralData) && (integralDataEve != 0))
+  if ((previousTotal == runningTotal) && (previousTotal != 0))
   {
-    timeMillis = millis();
-    if (remainFlag)
+    timeElapsed = millis();
+    if (muscleActive)
     {
-      timeBeginzero = timeMillis;
-      remainFlag = false;
+      timeBegin = timeElapsed;
+      muscleActive = false;
       return 0;
     }
     /* If the integral value exceeds 200 ms, the integral value is clear 0,return that get EMG signal */
-    if ((timeMillis - timeBeginzero) > TimeStandard)
+    if ((timeElapsed - timeBegin) > quietThreshold)
     {
-      integralDataEve = integralData = 0;
+      previousTotal = runningTotal = 0;
       return 1;
     }
     return 0;
   }
   else {
-    remainFlag = true;
+    muscleActive = true;
     return 0;
    }
 }
